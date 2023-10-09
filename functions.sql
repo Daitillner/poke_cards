@@ -346,3 +346,307 @@ END;
 //
 
 DELIMITER ;
+
+##STORED PROCEDURES
+-- Crear stored procedure para insertar un nuevo cliente
+DELIMITER //
+CREATE PROCEDURE InsertarCliente(
+    p_name VARCHAR(150),
+    p_document_type INT,
+    p_document_number VARCHAR(20),
+    p_address VARCHAR(50),
+    p_telephone VARCHAR(50)
+)
+BEGIN
+    INSERT INTO CLIENTES (NAME, DOCUMENT_TYPE, DOCUMENT_NUMBER, ADDRESS, TELEPHONE)
+    VALUES (p_name, p_document_type, p_document_number, p_address, p_telephone);
+END;
+//
+DELIMITER ;
+
+-- Crear stored procedure para insertar una nueva ficha
+DELIMITER //
+CREATE PROCEDURE InsertarFicha(
+    p_user_id INT,
+    p_nro_pedido VARCHAR(150),
+    p_date DATE,
+    p_address VARCHAR(50),
+    p_description VARCHAR(50)
+)
+BEGIN
+    INSERT INTO FICHA (USER_ID, NRO_DE_PEDIDO, DATE, ADDRESS, DESCRIPTION)
+    VALUES (p_user_id, p_nro_pedido, p_date, p_address, p_description);
+END;
+//
+DELIMITER ;
+
+-- Crear stored procedure para insertar un nuevo pedido
+DELIMITER //
+CREATE PROCEDURE InsertarPedido(
+    p_user_id INT,
+    p_date DATE,
+    p_monto DECIMAL(9, 2)
+)
+BEGIN
+    INSERT INTO PEDIDOS (USER_ID, DATE, MONTO)
+    VALUES (p_user_id, p_date, p_monto);
+END;
+//
+DELIMITER ;
+
+-- Crear stored procedure para insertar una nueva carta
+DELIMITER //
+CREATE PROCEDURE InsertarCarta(
+    p_description VARCHAR(50),
+    p_stock VARCHAR(150),
+    p_price DECIMAL(9, 2)
+)
+BEGIN
+    INSERT INTO CARTAS (DESCRIPTION, STOCK, PRICE)
+    VALUES (p_description, p_stock, p_price);
+END;
+//
+DELIMITER ;
+
+-- Crear stored procedure para insertar una carta en un pedido
+DELIMITER //
+CREATE PROCEDURE InsertarCartaEnPedido(
+    p_id_carta INT,
+    p_id_pedido INT,
+    p_quantity VARCHAR(150)
+)
+BEGIN
+    INSERT INTO CARTAS_POR_PEDIDO (ID_CARTA, ID_PEDIDO, QUANTITY)
+    VALUES (p_id_carta, p_id_pedido, p_quantity);
+END;
+//
+DELIMITER ;
+
+-- Crear stored procedure para insertar un nuevo envío
+DELIMITER //
+CREATE PROCEDURE InsertarEnvio(
+    p_id_pedido INT,
+    p_date DATE,
+    p_address VARCHAR(150),
+    p_monto DECIMAL(9, 2)
+)
+BEGIN
+    INSERT INTO ENVIOS (ID_PEDIDO, DATE, ADDRESS, MONTO)
+    VALUES (p_id_pedido, p_date, p_address, p_monto);
+END;
+//
+DELIMITER ;
+
+##TRIGGERS
+-- Crear trigger para actualizar el monto total en la tabla PEDIDOS
+DELIMITER //
+CREATE TRIGGER ActualizarMontoTotalPedido
+AFTER INSERT ON CARTAS_POR_PEDIDO
+FOR EACH ROW
+BEGIN
+    DECLARE total_monto DECIMAL(9, 2);
+    
+    SELECT SUM(CARTAS.PRICE * NEW.QUANTITY) INTO total_monto
+    FROM CARTAS_POR_PEDIDO
+    JOIN CARTAS ON CARTAS_POR_PEDIDO.ID_CARTA = CARTAS.ID_CARTA
+    WHERE CARTAS_POR_PEDIDO.ID_PEDIDO = NEW.ID_PEDIDO;
+    
+    UPDATE PEDIDOS
+    SET MONTO = total_monto
+    WHERE ID_PEDIDO = NEW.ID_PEDIDO;
+END;
+//
+DELIMITER ;
+
+-- Crear trigger para actualizar el monto total en la tabla ENVIOS
+DELIMITER //
+CREATE TRIGGER ActualizarMontoTotalEnvio
+AFTER INSERT ON CARTAS_POR_PEDIDO
+FOR EACH ROW
+BEGIN
+    DECLARE total_monto DECIMAL(9, 2);
+    
+    SELECT SUM(CARTAS.PRICE * NEW.QUANTITY) INTO total_monto
+    FROM CARTAS_POR_PEDIDO
+    JOIN CARTAS ON CARTAS_POR_PEDIDO.ID_CARTA = CARTAS.ID_CARTA
+    WHERE CARTAS_POR_PEDIDO.ID_PEDIDO = NEW.ID_PEDIDO;
+    
+    UPDATE ENVIOS
+    SET MONTO = total_monto
+    WHERE ID_PEDIDO = NEW.ID_PEDIDO;
+END;
+//
+DELIMITER ;
+
+##MANIPULACION_CONTENIDO_DML
+
+-- INSERT 
+##Insertar un nuevo cliente:
+INSERT INTO CLIENTES (NAME, DOCUMENT_TYPE, DOCUMENT_NUMBER, ADDRESS, TELEPHONE)
+VALUES ('Juan Perez', 1, '12345678', 'Calle 123', '555-1234');
+
+##Insertar una nueva ficha:
+INSERT INTO FICHA (USER_ID, NRO_DE_PEDIDO, DATE, ADDRESS, DESCRIPTION)
+VALUES (1, '12345', '2023-08-10', 'Calle 456', 'Pedido de prueba');
+
+##Insertar un nuevo pedido:
+INSERT INTO PEDIDOS (USER_ID, DATE, MONTO)
+VALUES (1, '2023-08-10', 150.00);
+
+##Insertar una nueva carta:
+INSERT INTO CARTAS (DESCRIPTION, STOCK, PRICE)
+VALUES ('Carta de Fuego', '100', 2.50);
+
+##Insertar una carta en un pedido:
+INSERT INTO CARTAS_POR_PEDIDO (ID_CARTA, ID_PEDIDO, QUANTITY)
+VALUES (1, 1, '3');
+
+##Insertar un nuevo envío:
+INSERT INTO ENVIOS (ID_PEDIDO, DATE, ADDRESS, MONTO)
+VALUES (1, '2023-08-10', 'Calle 789', 10.00);
+
+-- UPDATE
+##información de un cliente:
+UPDATE CLIENTES
+SET NAME = 'María García', ADDRESS = 'Avenida 123'
+WHERE USER_ID = 1;
+
+##información de una ficha:
+UPDATE FICHA
+SET DESCRIPTION = 'Pedido modificado', ADDRESS = 'Calle Modificada'
+WHERE ID_FICHA = 1;
+
+##el monto de un pedido:
+UPDATE PEDIDOS
+SET MONTO = 200.00
+WHERE ID_PEDIDO = 1;
+
+##descripción de una carta:
+UPDATE CARTAS
+SET DESCRIPTION = 'Carta actualizada'
+WHERE ID_CARTA = 1;
+
+##cantidad de cartas en un pedido:
+UPDATE CARTAS_POR_PEDIDO
+SET QUANTITY = '5'
+WHERE ID_CARTA = 1 AND ID_PEDIDO = 1;
+
+##dirección de envío:
+UPDATE ENVIOS
+SET ADDRESS = 'Nueva Dirección'
+WHERE ID_ENVIO = 1;
+
+-- SUBCONSULTAS
+##Actualizar el monto total de un pedido:
+UPDATE PEDIDOS
+SET MONTO = (
+    SELECT SUM(CARTAS.PRICE * CARTAS_POR_PEDIDO.QUANTITY)
+    FROM CARTAS_POR_PEDIDO
+    JOIN CARTAS ON CARTAS_POR_PEDIDO.ID_CARTA = CARTAS.ID_CARTA
+    WHERE CARTAS_POR_PEDIDO.ID_PEDIDO = PEDIDOS.ID_PEDIDO
+)
+WHERE ID_PEDIDO = 1;
+
+##Insertar un nuevo envío con información de un pedido
+INSERT INTO ENVIOS (ID_PEDIDO, DATE, ADDRESS, MONTO)
+VALUES (
+    1,
+    (SELECT DATE FROM PEDIDOS WHERE ID_PEDIDO = 1),
+    (SELECT ADDRESS FROM PEDIDOS WHERE ID_PEDIDO = 1),
+    (SELECT MONTO FROM PEDIDOS WHERE ID_PEDIDO = 1)
+);
+
+-- DELETE
+##Eliminar un cliente:
+DELETE FROM CLIENTES
+WHERE USER_ID = 1;
+
+##Eliminar una ficha:
+DELETE FROM FICHA
+WHERE ID_FICHA = 1;
+
+##Eliminar un pedido y sus registros relacionados:
+DELETE FROM PEDIDOS
+WHERE ID_PEDIDO = 1;
+
+##Eliminar una carta:
+DELETE FROM CARTAS
+WHERE ID_CARTA = 1;
+
+##Eliminar cartas de un pedido:
+DELETE FROM CARTAS_POR_PEDIDO
+WHERE ID_PEDIDO = 1;
+
+##Eliminar un envío:
+DELETE FROM ENVIOS
+WHERE ID_ENVIO = 1;
+
+##GESTION_USERS_DCL
+USE Mysql;
+
+-- Crear el primer usuario
+CREATE USER 'usuario1'@'localhost' IDENTIFIED BY 'contraseña1';
+
+-- Conceder privilegios al primer usuario en la base de datos relacionada con las cartas
+GRANT SELECT ON basededatos.* TO 'usuario1'@'localhost';
+
+-- Crear el segundo usuario
+CREATE USER 'usuario2'@'localhost' IDENTIFIED BY 'contraseña2';
+
+-- Conceder privilegios al segundo usuario en la base de datos relacionada con las cartas
+GRANT SELECT, INSERT ON basededatos.* TO 'usuario2'@'localhost';
+
+SELECT * FROM CLIENTES;
+
+-- Modificar la contraseña del usuario 'usuario1'
+ALTER USER 'usuario1'@'localhost' IDENTIFIED BY 'nueva_contraseña';
+
+-- Renombrar 'usuario1'
+RENAME USER usuario1@localhost TO coderuser1@localhost; 
+
+-- Eliminar usuario
+DROP USER coderuser1@localhost; 
+
+##TRANSACCIONES_TCL
+
+-- Iniciar una transacción
+START TRANSACTION;
+
+-- Actualizar el stock de una carta
+UPDATE CARTAS
+SET STOCK = STOCK - 3
+WHERE ID_CARTA = 1;
+
+-- Insertar una nueva ficha de pedido
+INSERT INTO FICHA (USER_ID, NRO_DE_PEDIDO, DATE, ADDRESS, DESCRIPTION)
+VALUES (2, '7890', '2023-08-20', 'Calle Nueva 2', 'Pedido nuevo');
+
+-- Insertar una nueva carta en un pedido
+INSERT INTO CARTAS_POR_PEDIDO (ID_CARTA, ID_PEDIDO, QUANTITY)
+VALUES (3, 2, '2');
+
+-- Confirmar la transacción
+COMMIT;
+
+SELECT * FROM CARTAS;
+
+ROLLBACK; 
+
+##INFORMES
+
+##Informe 1: Lista de Pedidos Recientes
+SELECT ID_PEDIDO, DATE, MONTO
+FROM PEDIDOS
+ORDER BY DATE DESC
+LIMIT 10;
+
+
+##Informe 2: Inventario de Cartas Pokémon
+
+SELECT DESCRIPTION AS Nombre_Carta, STOCK AS Cantidad_Disponible
+FROM CARTAS;
+
+
+
+
+
